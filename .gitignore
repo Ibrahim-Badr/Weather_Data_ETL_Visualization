@@ -1,0 +1,92 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# pip environment files
+pip-log.txt
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test / coverage
+.coverage
+htmlcov/
+.tox/
+.noseids
+.pytest_cache/
+.cache/
+coverage.xml
+*.cover
+
+# Spyder project settings
+.spyderproject
+
+# VS Code settings
+.vscode/
+.settings/
+
+# PyCharm project files
+.idea/
+*.iml
+
+# Data files (outputs, logs, environment)
+data/raw/
+data/processed/
+data/versions/
+*.sqlite3
+*.db
+*.log
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints
+
+# Temp files and system files
+*.swp
+*.swo
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.*
+
+# API keys or config secrets
+config/settings.py
+config/database.ini
+
+# PowerBI and BI artifacts
+*.pbix
+*.pbit
+
+# Python egg metadata
+*.egg
+*.egg-info/
+.installed.cfg
+
+# Notebook output
+notebooks/__pycache__/
+notebooks/*.nbconvert.ipynb
+
+# Scripts output
+scripts/__pycache__/
+
+# Documentation build
+docs/_build/
+
+# ignore combined coverage and pytest report files
+*.coveragerc
+.mypy_cache/
+.pyre/
+.dmypy.json
+.cache/
