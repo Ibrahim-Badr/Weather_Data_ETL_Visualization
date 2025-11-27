@@ -68,7 +68,7 @@ class ToulouseConfig(IDataSourceConfig):
                     fields = record
                 
                 if idx == 0:
-                    print(f"\nDebug: First record fields:")
+                    print("\nDebug: First record fields:")
                     print(json.dumps(fields, indent=2, ensure_ascii=False)[:500])
                 
                 station_id = fields.get('id_numero')
@@ -95,7 +95,7 @@ class ToulouseConfig(IDataSourceConfig):
                 if station['station_id'] != '00':
                     stations.append(station)
                     
-            except Exception as e:
+            except (KeyError, ValueError, TypeError) as e:
                 print(f"Warning: Could not parse station record {idx}: {e}")
                 continue
         
@@ -161,7 +161,7 @@ class ToulouseConfig(IDataSourceConfig):
                 if weather_data['timestamp'] and weather_data['temperature'] is not None:
                     weather_records.append(weather_data)
                     
-            except Exception as e:
+            except (KeyError, ValueError, TypeError) as e:
                 if idx == 0:
                     print(f"    Warning: Could not parse weather record: {e}")
                 continue
