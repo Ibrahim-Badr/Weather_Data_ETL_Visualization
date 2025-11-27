@@ -74,7 +74,7 @@ class APIExtractor(IDataExtractor):
         except requests.exceptions.RequestException as e:
             print(f"✗ Error fetching stations: {e}")
             return []
-        except Exception as e:
+        except (ValueError, KeyError) as e:
             print(f"✗ Error parsing stations data: {e}")
             return []
     
@@ -175,7 +175,7 @@ class APIExtractor(IDataExtractor):
         except requests.exceptions.RequestException as e:
             print(f"    Error: API request failed - {e}")
             return []
-        except Exception as e:
+        except (ValueError, KeyError) as e:
             print(f"    Error: Data parsing failed - {e}")
             return []
 
