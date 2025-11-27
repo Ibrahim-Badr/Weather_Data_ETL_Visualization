@@ -10,7 +10,6 @@ class IDataSourceConfig(ABC):
     @abstractmethod
     def get_stations_api_url(self) -> str:
         """Get the API URL for retrieving the list of all stations."""
-        pass
     
     @abstractmethod
     def get_station_data_url(self, station_id: str, dataset_id: Optional[str] = None) -> str:
@@ -24,19 +23,15 @@ class IDataSourceConfig(ABC):
         Returns:
             str: URL endpoint for station weather data
         """
-        pass
     
     @abstractmethod
     def get_location_name(self) -> str:
         """Get the human-readable location name."""
-        pass
     
     @abstractmethod
     def parse_station_metadata(self, api_response: dict) -> List[Dict]:
         """Parse API response to extract station metadata."""
-        pass
     
     @abstractmethod
     def parse_weather_data(self, api_response: dict, station_id: str) -> List[Dict]:
         """Parse API response to extract weather data records."""
-        pass
