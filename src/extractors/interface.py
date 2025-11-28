@@ -22,7 +22,6 @@ class IDataExtractor(ABC):
         Returns:
             List[Dict]: List of station metadata dictionaries
         """
-        pass
     
     @abstractmethod
     def extract(self, station_ids: Optional[List[str]] = None, limit: int = 100) -> List[Dict]:
@@ -36,4 +35,3 @@ class IDataExtractor(ABC):
         Returns:
             List[Dict]: List of raw weather data dictionaries
         """
-        pass
