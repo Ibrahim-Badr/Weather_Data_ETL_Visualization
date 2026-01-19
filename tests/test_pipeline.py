@@ -2,16 +2,13 @@
 Test script for ETL Pipeline.
 Tests the complete Extract → Transform → Load flow.
 """
-import sys
-import os
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.config.toulouse_config import ToulouseConfig
 from src.extractors.api_extractor import APIExtractor
 from src.transformers.data_cleaner import DataCleaner
 from src.loaders.database_loader import DatabaseLoader
 from src.pipeline.etl_pipeline import ETLPipeline
+
 
 
 def test_etl_pipeline():
