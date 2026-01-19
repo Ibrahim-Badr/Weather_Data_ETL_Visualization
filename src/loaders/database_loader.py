@@ -6,10 +6,11 @@ Responsible for:
 - Inserting WeatherDataModel records
 - Querying records back as WeatherDataModel instances
 """
+
 import sqlite3
 from typing import List
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .interface import IDataLoader
 from ..models.weather_model import WeatherDataModel
@@ -185,11 +186,13 @@ class DatabaseLoader(IDataLoader):
             timestamp_str,
         ) = row
 
-        # Parse timestamp string back to datetime
+        # FIXED: Always return timezone-aware UTC datetime
         try:
             timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+            if timestamp.tzinfo is None:  # Make naive → aware
+                timestamp = timestamp.replace(tzinfo=timezone.utc)
         except (ValueError, TypeError):
-            timestamp = datetime.now()
+            timestamp = datetime.now(timezone.utc)  # Always timezone-aware UTC
 
         return WeatherDataModel(
             location=location,
