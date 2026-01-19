@@ -10,15 +10,17 @@ Usage:
     python main.py --stations 24 36   # Run for multiple stations
     python main.py --limit 50         # Change record limit per station
 """
+
 import sys
+import traceback
 import argparse
 from datetime import datetime
 
+from src.pipeline.etl_pipeline import ETLPipeline
 from src.config.toulouse_config import ToulouseConfig
 from src.extractors.api_extractor import APIExtractor
 from src.transformers.data_cleaner import DataCleaner
 from src.loaders.database_loader import DatabaseLoader
-from src.pipeline.etl_pipeline import ETLPipeline
 
 
 def main():
@@ -142,7 +144,6 @@ def main():
 
     except (ConnectionError, ValueError, KeyError, IOError) as e:
         print(f"\n\n❌ Unexpected error: {e}")
-        import traceback
         traceback.print_exc()
         return 1
 
