@@ -1,21 +1,19 @@
 """
 Test script for DataCleaner transformer.
 """
-import sys
 import os
-from datetime import datetime
+import sys
+from src.transformers.data_cleaner import DataCleaner
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from src.transformers.data_cleaner import DataCleaner
 
 
 def test_data_cleaner():
     """Test DataCleaner with sample data."""
     print("="*70)
     print("Testing DataCleaner Transformer")
-    print("="*70)
     
+    print("="*70)
     # Sample raw data (like from API)
     raw_data = [
         {
