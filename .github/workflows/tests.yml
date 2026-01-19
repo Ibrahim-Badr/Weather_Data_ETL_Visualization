@@ -1,14 +1,25 @@
-name: Tests
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+
+name: Python application
+
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: pip install -e . 
-      - run: pytest
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Test with pytest
+        run: |
+          PYTHONPATH=./src pytest
