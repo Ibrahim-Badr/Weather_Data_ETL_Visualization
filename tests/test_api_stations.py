@@ -130,7 +130,7 @@ def test_get_station_activity_nonexistent(client):
     data = response.json()
     
     assert data["status"] == "no_data"
-    assert data["score"] == 0
+    assert data["activity_score"] == 0
 
 
 def test_stations_endpoint_structure(client):

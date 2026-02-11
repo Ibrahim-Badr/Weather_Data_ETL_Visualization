@@ -121,7 +121,7 @@ def test_get_station_activity_score_nonexistent(station_selector):  # pylint: di
     """Test activity score for non-existent station."""
     result = station_selector.get_station_activity_score("NONEXISTENT_ID")
     
-    assert result["score"] == 0, "Non-existent station should have score 0"
+    assert result["activity_score"] == 0, "Non-existent station should have score 0"
     assert result["status"] == "no_data", "Status should be 'no_data'"
 
 

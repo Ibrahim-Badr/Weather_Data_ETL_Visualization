@@ -20,6 +20,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Create database directory
+        run: |
+          mkdir -p database
+
+      - name: Populate database for tests
+        run: |
+          python main.py --limit 100
+        continue-on-error: false
+
       - name: Lint with pylint
         run: |
           pylint src/ --disable=C0114,C0115,C0116 --max-line-length=100

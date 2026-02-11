@@ -59,7 +59,7 @@ class StationSelector:
         """
         records = self.loader.fetch_by_station(station_id)
         if not records:
-            return {"station_id": station_id, "score": 0, "status": "no_data"}
+            return {"station_id": station_id, "activity_score": 0, "status": "no_data"}
         
         station_stats = self._calculate_station_stats(records, station_id)
         score = self._compute_activity_score(station_stats)
