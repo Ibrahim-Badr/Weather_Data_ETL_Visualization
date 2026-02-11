@@ -1,83 +1,61 @@
 """
-Test script for DatabaseLoader.
+Tests for DatabaseLoader.
 """
-import sys
-import os
-from datetime import datetime
 
-# Add project root to path (must be before src imports, but after standard library)
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from src.models.weather_model import WeatherDataModel
-from src.loaders.database_loader import DatabaseLoader
+def test_database_initialization(database_loader):
+    """Test that database initializes correctly."""
+    # The fixture already initializes, so we just verify it exists
+    assert database_loader is not None
 
 
-def test_database_loader():
-    """
-    Test the DatabaseLoader functionality.
+def test_save_weather_data(database_loader, sample_weather_models):
+    """Test saving weather data records to database."""
+    # Save records
+    database_loader.save(sample_weather_models)
     
-    This test verifies:
-    - Database initialization
-    - Saving weather data records
-    - Fetching all records
-    - Fetching records by station ID
-    """
-    print("=" * 70)
-    print("Testing DatabaseLoader")
-    print("=" * 70)
+    # Fetch all records
+    all_records = database_loader.fetch_all()
+    
+    assert len(all_records) >= len(sample_weather_models)
+    assert all(hasattr(record, 'station_id') for record in all_records)
 
-    # Optional: Delete old database for clean test
-    db_file = "database/weather.db"
-    if os.path.exists(db_file):
-        os.remove(db_file)
-        print("✓ Cleared old database\n")
 
-    loader = DatabaseLoader("database/weather.db")
-    loader.initialize()
-
-    # Create some fake models
-    records = [
-        WeatherDataModel(
-            location="Toulouse",
-            station_id="24",
-            station_name="24-station-meteo-colomiers",
-            temperature=20.6,
-            humidity=74.0,
-            rainfall=0.0,
-            wind_speed=4.0,
-            pressure=99100.0,
-            timestamp=datetime.now(),
-        ),
-        WeatherDataModel(
-            location="Toulouse",
-            station_id="24",
-            station_name="24-station-meteo-colomiers",
-            temperature=11.7,
-            humidity=93.0,
-            rainfall=0.5,
-            wind_speed=1.0,
-            pressure=99200.0,
-            timestamp=datetime.now(),
-        ),
-    ]
-
-    # Save them
-    loader.save(records)
-
+def test_fetch_all_records(database_loader, sample_weather_models):
+    """Test fetching all records from database."""
+    # Save some records first
+    database_loader.save(sample_weather_models)
+    
     # Fetch all
-    all_records = loader.fetch_all()
-    print(f"\n✓ Fetched {len(all_records)} records from DB (all):")
-    for r in all_records:
-        print(f"- {r}")
+    all_records = database_loader.fetch_all()
+    
+    assert isinstance(all_records, list)
+    assert len(all_records) > 0
 
+
+def test_fetch_by_station_id(database_loader, sample_weather_models):
+    """Test fetching records filtered by station ID."""
+    # Save records
+    database_loader.save(sample_weather_models)
+    
     # Fetch by station
-    station_records = loader.fetch_by_station("24")
-    print(f"\n✓ Fetched {len(station_records)} records for station 24:")
-    for r in station_records:
-        print(f"- {r}")
+    station_id = sample_weather_models[0].station_id
+    station_records = database_loader.fetch_by_station(station_id)
+    
+    assert isinstance(station_records, list)
+    assert len(station_records) > 0
+    assert all(record.station_id == station_id for record in station_records)
 
-    print("\nTest completed.")
+
+def test_save_empty_list(database_loader):
+    """Test that saving an empty list doesn't cause errors."""
+    database_loader.save([])
+    
+    # Should not raise any exceptions
 
 
-if __name__ == "__main__":
-    test_database_loader()
+def test_fetch_nonexistent_station(database_loader):
+    """Test fetching data for a station that doesn't exist."""
+    records = database_loader.fetch_by_station("999999")
+    
+    assert isinstance(records, list)
+    assert len(records) == 0

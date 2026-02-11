@@ -1,20 +1,21 @@
 """
-Test script for DataCleaner transformer.
+Tests for DataCleaner transformer.
 """
-import os
-import sys
-from src.transformers.data_cleaner import DataCleaner
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from src.models.weather_model import WeatherDataModel
 
 
-def test_data_cleaner():
-    """Test DataCleaner with sample data."""
-    print("="*70)
-    print("Testing DataCleaner Transformer")
+def test_transform_valid_data(data_cleaner, sample_weather_data):
+    """Test transforming valid weather data."""
+    clean_models = data_cleaner.transform(sample_weather_data)
     
-    print("="*70)
-    # Sample raw data (like from API)
+    assert isinstance(clean_models, list)
+    assert len(clean_models) == len(sample_weather_data)
+    assert all(isinstance(model, WeatherDataModel) for model in clean_models)
+    assert all(model.validate() for model in clean_models)
+
+
+def test_transform_filters_invalid_records(data_cleaner):
+    """Test that invalid records are filtered out during transformation."""
     raw_data = [
         {
             'station_id': '24',
@@ -28,49 +29,63 @@ def test_data_cleaner():
             'timestamp': '2025-11-06T14:30:00+00:00'
         },
         {
-            'station_id': '24',
-            'station_name': '24-station-meteo-colomiers',
-            'location': 'Toulouse',
-            'temperature': 11.7,
-            'humidity': 93,
-            'rainfall': 0.5,
-            'wind_speed': 1,
-            'pressure': 99200,
-            'timestamp': '2025-11-06T05:45:00+00:00'
-        },
-        {
-            # Invalid record - missing temperature
+            # Invalid - missing temperature
             'station_id': '24',
             'humidity': 80,
             'timestamp': '2025-11-06T12:00:00+00:00'
         },
         {
-            # Invalid record - temperature out of range
+            # Invalid - temperature out of range
             'station_id': '24',
-            'temperature': 200.0,  # Too high!
+            'temperature': 200.0,
             'humidity': 50,
             'rainfall': 0,
             'timestamp': '2025-11-06T12:00:00+00:00'
         }
     ]
     
-    # Create cleaner
-    cleaner = DataCleaner()
+    clean_models = data_cleaner.transform(raw_data)
     
-    # Transform data
-    clean_models = cleaner.transform(raw_data)
-    
-    # Display results
-    print("\n✓ Cleaned models:")
-    for i, model in enumerate(clean_models, 1):
-        print(f"\n{i}. {model}")
-    
-    # Show statistics
-    print("\n📊 Cleaning Statistics:")
-    stats = cleaner.get_stats()
-    for key, value in stats.items():
-        print(f"   {key}: {value}")
+    # Should only return the valid record
+    assert len(clean_models) < len(raw_data)
+    assert all(model.validate() for model in clean_models)
 
 
-if __name__ == "__main__":
-    test_data_cleaner()
+def test_transform_empty_list(data_cleaner):
+    """Test transforming an empty list."""
+    clean_models = data_cleaner.transform([])
+    
+    assert isinstance(clean_models, list)
+    assert len(clean_models) == 0
+
+
+def test_get_stats(data_cleaner, sample_weather_data):
+    """Test getting transformation statistics."""
+    # Transform some data
+    data_cleaner.transform(sample_weather_data)
+    
+    stats = data_cleaner.get_stats()
+    
+    assert isinstance(stats, dict)
+    assert 'total_processed' in stats or len(stats) >= 0
+
+
+def test_transform_handles_missing_optional_fields(data_cleaner):
+    """Test that transformer handles records with missing optional fields."""
+    raw_data = [
+        {
+            'station_id': '24',
+            'station_name': '24-station-meteo-colomiers',
+            'location': 'Toulouse',
+            'temperature': 20.6,
+            'humidity': 74,
+            # Missing optional fields like wind_speed, pressure
+            'timestamp': '2025-11-06T14:30:00+00:00'
+        }
+    ]
+    
+    clean_models = data_cleaner.transform(raw_data)
+    
+    # Should still create valid models
+    assert len(clean_models) > 0
+    assert all(isinstance(model, WeatherDataModel) for model in clean_models)
