@@ -2,7 +2,7 @@
 Weather data API endpoints.
 """
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Query, HTTPException, Depends
 
 from src.models.weather_model import WeatherDataModel
@@ -40,10 +40,16 @@ async def get_weather_data(
     # Filter by date range
     if start_date:
         start_dt = datetime.fromisoformat(start_date)
+        # Make timezone-aware if needed
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=timezone.utc)
         records = [r for r in records if r.timestamp >= start_dt]
     
     if end_date:
         end_dt = datetime.fromisoformat(end_date)
+        # Make timezone-aware if needed
+        if end_dt.tzinfo is None:
+            end_dt = end_dt.replace(tzinfo=timezone.utc)
         records = [r for r in records if r.timestamp <= end_dt]
     
     # Filter by temperature range
