@@ -24,7 +24,7 @@ Professional ETL (Extract, Transform, Load) pipeline for Toulouse weather data w
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    ETL Pipeline                          │
 ├─────────────────────────────────────────────────────────┤
@@ -50,7 +50,7 @@ Professional ETL (Extract, Transform, Load) pipeline for Toulouse weather data w
 
 ## 📁 Project Structure
 
-```
+```text
 Weather_Data_ETL_Visualization/
 ├── .github/
 │   └── workflows/
@@ -211,10 +211,9 @@ docker compose down
 ## 🔌 API Endpoints
 
 ### Health Check
-```bash
-GET /health
-```
-Response:
+`GET /health`
+
+**Response:**
 ```json
 {
   "status": "healthy",
@@ -224,19 +223,13 @@ Response:
 ```
 
 ### List Stations
-```bash
-GET /stations?limit=10&offset=0
-```
+`GET /stations?limit=10&offset=0`
 
 ### Get Weather Data
-```bash
-GET /weather/?station_id=24&limit=100&start_date=2020-01-01&end_date=2024-12-31
-```
+`GET /weather/?station_id=24&limit=100&start_date=2020-01-01&end_date=2024-12-31`
 
 ### Get Statistics
-```bash
-GET /weather/statistics/?station_id=24
-```
+`GET /weather/statistics/?station_id=24`
 
 ---
 
@@ -289,27 +282,51 @@ pytest --cov=src --cov-report=html
 ### 1. Binary Search Tree
 - **File**: `src/structures/binary_search_tree.py`
 - **Use Case**: Efficient station lookup by ID
-- **Complexity**: O(log n) search
+- **Complexity**: $O(\log n)$ search
 
 ### 2. Hash Table
 - **File**: `src/structures/hash_table.py`
 - **Use Case**: Fast station metadata retrieval
-- **Complexity**: O(1) average case
+- **Complexity**: $O(1)$ average case
 
 ### 3. Linked List
 - **File**: `src/structures/linked_list.py`
 - **Use Case**: Weather data time series
-- **Complexity**: O(1) insertion
+- **Complexity**: $O(1)$ insertion
 
 ---
 
 ## 🐳 Docker Services
 
 | Service | Description | Port |
-|---------|-------------|------|
+| :--- | :--- | :--- |
 | **database** | SQLite volume container | - |
 | **etl** | ETL pipeline runner | - |
 | **api** | FastAPI REST API | 8000 |
+
+---
+
+## ⚙️ CI/CD (GitHub Actions)
+
+This project includes an automated CI/CD pipeline using GitHub Actions to ensure code quality and deployment reliability.
+
+### Workflow Configuration
+- **File**: `.github/workflows/python-app.yml`
+- **Triggers**: 
+  - Automatically on each push to: `main`, `master`, `develop`
+  - Automatically on each pull request targeting: `main`, `master`
+
+### Pipeline Steps
+1. **Environment Setup**: Install dependencies using Python 3.11 with pip caching.
+2. **Data Initialization**: Run ETL once with a limited dataset to populate the SQLite database.
+3. **Linting**: Static code analysis with `pylint` (requires a minimum score of 7.0).
+4. **Formatting**: Check code style with `black` (non-blocking).
+5. **Testing**: Execute full test suite with `pytest` and generate coverage reports (minimum 80% coverage required).
+6. **Containerization**: Build Docker images and verify service orchestration with `docker compose`.
+7. **Health Check**: Validate the live API status via the `/health` endpoint.
+
+### Monitoring
+To view the status and history of pipeline runs, navigate to the **Actions** tab in the GitHub repository.
 
 ---
 
@@ -334,7 +351,7 @@ Edit `src/config/settings.py` for:
 ## 📈 Performance
 
 | Metric | Value |
-|--------|-------|
+| :--- | :--- |
 | **ETL Speed** | ~500 records/min |
 | **API Response Time** | <100ms (avg) |
 | **Database Size** | ~5 MB (4500 records) |
@@ -343,10 +360,11 @@ Edit `src/config/settings.py` for:
 
 ---
 
-
 ## 👨‍💻 Author
 
 **Your Name**
 - GitHub: [@Ibrahim-Badr](https://github.com/Ibrahim-Badr)
 
+---
 
+**Made with ❤️ for Ynov Campus Data Engineering Course**
