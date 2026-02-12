@@ -1,0 +1,24 @@
+# .dockerignore
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.git/
+.gitignore
+.github/
+tests/
+*.md
+.DS_Store
+database/*.db-journal
+database/*.db-wal
