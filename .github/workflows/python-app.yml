@@ -1,0 +1,112 @@
+# .github/workflows/python-app.yml
+name: Application Weather with Python CI/CD
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # Job 1: Lint and Test
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create database directory
+        run: |
+          mkdir -p database
+
+      - name: Run ETL to populate database
+        run: |
+          python main.py --stations 24 25 --limit 100
+        continue-on-error: false
+        timeout-minutes: 10
+
+      - name: Lint with pylint
+        run: |
+          pylint src/ --disable=C0114,C0115,C0116,R0902,R0903,R0911,R0913,R0915,R0917 --max-line-length=100 --fail-under=7.0
+        continue-on-error: false 
+
+      - name: Format check with black
+        run: |
+          black --check src/ --line-length=100
+        continue-on-error: true 
+
+      - name: Run tests with pytest
+        run: |
+          pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=80 -v
+        timeout-minutes: 5
+
+      # ✅ Archive coverage reports (no external service needed)
+      - name: Archive coverage reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 30
+
+      # ✅ Display coverage summary in GitHub Actions log
+      - name: Coverage Summary
+        if: always()
+        run: |
+          echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          coverage report --skip-covered >> $GITHUB_STEP_SUMMARY || true
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  # Job 2: Docker Build Test
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          docker-compose build
+
+      - name: Test Docker services
+        run: |
+          docker-compose up -d
+          sleep 15
+          docker-compose ps
+          
+          # Test API health
+          curl -f http://localhost:8000/health || exit 1
+          
+          # Test stations endpoint
+          curl -f http://localhost:8000/stations?limit=5 || exit 1
+          
+          # Check logs for errors
+          docker-compose logs
+          
+          # Cleanup
+          docker-compose down
+
+      - name: Check image size
+        run: |
+          echo "## Docker Images" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          docker images | grep weather >> $GITHUB_STEP_SUMMARY || echo "No images found" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
