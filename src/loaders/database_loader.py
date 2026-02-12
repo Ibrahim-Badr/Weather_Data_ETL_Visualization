@@ -47,7 +47,7 @@ class DatabaseLoader(IDataLoader):
         conn = sqlite3.connect(self.db_path)
         self._connections.append(conn)
         return conn
-    
+
     # ✅ Cleanup method
     def close(self) -> None:
         """Close all open database connections."""
@@ -57,16 +57,16 @@ class DatabaseLoader(IDataLoader):
             except sqlite3.Error:
                 pass
         self._connections.clear()
-    
+
     # ✅ Context manager support
     def __enter__(self):
         """Context manager entry."""
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - close connections."""
         self.close()
-    
+
     # ✅ Destructor
     def __del__(self):
         """Cleanup when object is destroyed."""
