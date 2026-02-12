@@ -52,7 +52,6 @@ jobs:
           pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --cov-fail-under=80 -v
         timeout-minutes: 5
 
-      # ✅ Archive coverage reports (no external service needed)
       - name: Archive coverage reports
         uses: actions/upload-artifact@v4
         if: always()
@@ -61,7 +60,6 @@ jobs:
           path: htmlcov/
           retention-days: 30
 
-      # ✅ Display coverage summary in GitHub Actions log
       - name: Coverage Summary
         if: always()
         run: |
@@ -82,15 +80,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      # ✅ FIX: Use 'docker compose' instead of 'docker-compose'
       - name: Build Docker image
         run: |
-          docker-compose build
+          docker compose build
 
       - name: Test Docker services
         run: |
-          docker-compose up -d
-          sleep 15
-          docker-compose ps
+          docker compose up -d
+          sleep 20
+          docker compose ps
           
           # Test API health
           curl -f http://localhost:8000/health || exit 1
@@ -98,11 +97,11 @@ jobs:
           # Test stations endpoint
           curl -f http://localhost:8000/stations?limit=5 || exit 1
           
-          # Check logs for errors
-          docker-compose logs
+          # Show logs
+          docker compose logs
           
           # Cleanup
-          docker-compose down
+          docker compose down
 
       - name: Check image size
         run: |
