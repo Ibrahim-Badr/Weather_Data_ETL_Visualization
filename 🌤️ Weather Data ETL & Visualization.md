@@ -367,4 +367,3 @@ Edit `src/config/settings.py` for:
 
 ---
 
-**Made with ❤️ for Ynov Campus Data Engineering Course**
