@@ -10,6 +10,7 @@ from ..dependencies import get_db_loader
 
 router = APIRouter(prefix="/stations", tags=["stations"])
 
+
 @router.get("")
 async def get_stations(
     location: Optional[str] = Query(None, description="Filter by location"),
@@ -23,7 +24,7 @@ async def get_stations(
 ) -> List[dict]:
     """
     Get list of weather stations with advanced filtering.
-    
+
     Query parameters:
     - location: Filter by city/region (e.g., "Toulouse")
     - start_date/end_date: Date range (YYYY-MM-DD)
@@ -43,6 +44,7 @@ async def get_stations(
         limit=limit
     )
 
+
 @router.get("/{station_id}")
 async def get_station_details(
     station_id: str,
@@ -52,10 +54,10 @@ async def get_station_details(
     Get detailed information for a specific station.
     """
     records = loader.fetch_by_station(station_id)
-    
+
     if not records:
         return {"error": "Station not found or no data available"}
-    
+
     station = {
         "station_id": station_id,
         "station_name": records[0].station_name,
@@ -72,10 +74,12 @@ async def get_station_details(
         },
         "latest_record": WeatherDataModel.to_dict(max(records, key=lambda x: x.timestamp))
     }
-    
+
     return station
 
 # ✅ NEW ACTIVITY ENDPOINT - ADD THIS
+
+
 @router.get("/{station_id}/activity")
 async def get_station_activity(
     station_id: str,
