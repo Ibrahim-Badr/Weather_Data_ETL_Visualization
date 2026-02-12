@@ -10,7 +10,7 @@ from src.loaders.interface import IDataLoader
 def get_db_loader() -> IDataLoader:
     """
     Dependency injection for DatabaseLoader.
-    
+
     Returns a cached DatabaseLoader instance for all requests.
     """
     loader = DatabaseLoader("database/weather.db")

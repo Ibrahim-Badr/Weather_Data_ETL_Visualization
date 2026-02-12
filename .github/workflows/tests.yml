@@ -20,6 +20,27 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      - name: Create database directory
+        run: |
+          mkdir -p database
+
+      - name: Populate database for tests
+        run: |
+          python main.py --limit 100
+        continue-on-error: false
+
+      - name: Lint with pylint
+        run: |
+          pylint src/ --disable=C0114,C0115,C0116 --max-line-length=100
+        continue-on-error: true
+
       - name: Test with pytest
         run: |
-          PYTHONPATH=./src pytest
+          pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false

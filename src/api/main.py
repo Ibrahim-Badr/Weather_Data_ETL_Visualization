@@ -3,7 +3,9 @@ FastAPI Weather Data API - Main Application.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 from .routes import stations, weather
 
 # Create FastAPI app
@@ -22,9 +24,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files
+static_path = Path(__file__).parent.parent.parent / "static"
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
 # Include routers
 app.include_router(stations.router)
 app.include_router(weather.router)
+
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    """Interactive weather dashboard."""
+    dashboard_file = Path(__file__).parent.parent.parent / "static" / "index.html"
+    if dashboard_file.exists():
+        return FileResponse(dashboard_file)
+    return HTMLResponse("<h1>Dashboard not found</h1>", status_code=404)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -40,11 +56,24 @@ async def root():
                 .endpoint { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; }
                 code { background: #e9ecef; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
                 a { color: #3498db; text-decoration: none; }
+                .dashboard-btn { 
+                    display: inline-block;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 15px 30px;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    margin: 20px 0;
+                    text-decoration: none;
+                }
+                .dashboard-btn:hover { opacity: 0.9; }
             </style>
         </head>
         <body>
             <h1>🌤️ Weather Data ETL API</h1>
             <p><strong>4,523 weather records from 44 Toulouse stations</strong></p>
+            
+            <a href="/dashboard" class="dashboard-btn">🎨 Open Interactive Dashboard →</a>
             
             <div class="endpoint">
                 <h3>📋 Stations</h3>
@@ -64,7 +93,7 @@ async def root():
             <p><a href="/docs">Swagger UI → /docs</a> | <a href="/redoc">ReDoc → /redoc</a></p>
             
             <hr>
-            <p><em>Powered by FastAPI + SQLite + Toulouse Open Data [web:72]</em></p>
+            <p><em>Powered by FastAPI + SQLite + Toulouse Open Data</em></p>
         </body>
     </html>
     """

@@ -2,7 +2,7 @@
 Weather data API endpoints.
 """
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Query, HTTPException, Depends
 
 from src.models.weather_model import WeatherDataModel
@@ -24,7 +24,7 @@ async def get_weather_data(
 ) -> dict:
     """
     Get weather data with advanced filtering.
-    
+
     Parameters:
     - station_id: REQUIRED - Station identifier
     - start_date/end_date: Date range filter (YYYY-MM-DD)
@@ -33,29 +33,35 @@ async def get_weather_data(
     """
     # Get filtered records
     records = loader.fetch_by_station(station_id)
-    
+
     if not records:
         raise HTTPException(status_code=404, detail="No data found for this station")
-    
+
     # Filter by date range
     if start_date:
         start_dt = datetime.fromisoformat(start_date)
+        # Make timezone-aware if needed
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=timezone.utc)
         records = [r for r in records if r.timestamp >= start_dt]
-    
+
     if end_date:
         end_dt = datetime.fromisoformat(end_date)
+        # Make timezone-aware if needed
+        if end_dt.tzinfo is None:
+            end_dt = end_dt.replace(tzinfo=timezone.utc)
         records = [r for r in records if r.timestamp <= end_dt]
-    
+
     # Filter by temperature range
     if min_temp is not None:
         records = [r for r in records if r.temperature >= min_temp]
-    
+
     if max_temp is not None:
         records = [r for r in records if r.temperature <= max_temp]
-    
+
     # Convert to dicts and limit
     result = [WeatherDataModel.to_dict(r) for r in records[:limit]]
-    
+
     return {
         "station_id": station_id,
         "total_records": len(result),
@@ -73,13 +79,13 @@ async def get_weather_stats(
     Get weather statistics across stations.
     """
     all_records = loader.fetch_all()
-    
+
     if station_id:
         all_records = [r for r in all_records if r.station_id == station_id]
-    
+
     if not all_records:
         return {"error": "No data available"}
-    
+
     temps = [r.temperature for r in all_records]
     return {
         "total_records": len(all_records),

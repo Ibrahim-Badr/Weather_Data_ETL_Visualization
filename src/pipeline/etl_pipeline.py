@@ -1,47 +1,58 @@
 """
-ETL Pipeline orchestration.
-Coordinates the Extract → Transform → Load process.
+ETL Pipeline with Queue (processing order) + LinkedList (history tracking).
 """
 from typing import List, Optional
 from datetime import datetime
 import time
 
+
 from ..extractors.interface import IDataExtractor
 from ..transformers.interface import IDataTransformer
 from ..loaders.interface import IDataLoader
-from ..models.weather_model import WeatherDataModel
+
+
+# ✅ Import BOTH data structures
+from ..structures.queue import Queue
+from ..structures.linked_list import LinkedList
+
+
+class ProcessingRecord:
+    """Record of a single processing event (for LinkedList)."""
+
+    def __init__(self, station_id: str, record_count: int, timestamp: datetime, status: str):
+        self.station_id = station_id
+        self.record_count = record_count
+        self.timestamp = timestamp
+        self.status = status  # "success", "failed", "skipped"
+
+    def __repr__(self):
+        return (f"ProcessingRecord(station={self.station_id}, "
+                f"records={self.record_count}, status={self.status})")
 
 
 class ETLPipeline:
     """
-    ETL Pipeline orchestrator.
-    
-    Coordinates the complete data flow:
-    1. Extract: Get raw data from API via extractor
-    2. Transform: Clean and validate via transformer
-    3. Load: Save to database via loader
-    
-    Demonstrates Dependency Injection and Single Responsibility principles.
+    ETL Pipeline with dual data structures:
+    - Queue: Manages station processing order (FIFO)
+    - LinkedList: Tracks processing history chronologically
     """
-    
+
     def __init__(
         self,
         extractor: IDataExtractor,
         transformer: IDataTransformer,
         loader: IDataLoader
     ):
-        """
-        Initialize pipeline with dependencies.
-        
-        Args:
-            extractor: Implementation of IDataExtractor
-            transformer: Implementation of IDataTransformer
-            loader: Implementation of IDataLoader
-        """
         self.extractor = extractor
         self.transformer = transformer
         self.loader = loader
-        
+
+        # ✅ Queue: Stations waiting to be processed (FIFO)
+        self.processing_queue = Queue[str]()
+
+        # ✅ LinkedList: History of all processing events
+        self.processing_history = LinkedList[ProcessingRecord]()
+
         # Statistics
         self.stats = {
             'start_time': None,
@@ -50,111 +61,216 @@ class ETLPipeline:
             'raw_records_extracted': 0,
             'valid_records_cleaned': 0,
             'records_saved': 0,
-            'stations_processed': 0
+            'stations_processed': 0,
+            'stations_failed': 0
         }
-    
+
     def run(
         self,
         station_ids: Optional[List[str]] = None,
         limit_per_station: int = 100
     ) -> dict:
         """
-        Run the complete ETL pipeline.
-        
-        Args:
-            station_ids: List of station IDs to process. If None, process all.
-            limit_per_station: Maximum records to extract per station
-            
-        Returns:
-            dict: Pipeline execution statistics
+        Run ETL pipeline using:
+        - Queue to process stations in order
+        - LinkedList to track processing history
         """
         print("\n" + "="*70)
         print("🚀 Starting ETL Pipeline")
+        print("   📋 Queue: Manages processing order (FIFO)")
+        print("   🔗 LinkedList: Tracks processing history")
         print("="*70)
-        
+
         self.stats['start_time'] = datetime.now()
         start_time = time.time()
-        
+
         try:
-            # Step 1: EXTRACT
-            print("\n📥 Step 1: EXTRACT - Getting raw data from API...")
-            raw_data = self.extractor.extract(
-                station_ids=station_ids,
-                limit=limit_per_station
-            )
-            self.stats['raw_records_extracted'] = len(raw_data)
-            print(f"   ✓ Extracted {len(raw_data)} raw records")
-            
-            if not raw_data:
-                print("\n⚠ No data extracted. Pipeline stopped.")
-                return self.stats
-            
-            # Step 2: TRANSFORM
-            print("\n🔄 Step 2: TRANSFORM - Cleaning and validating data...")
-            clean_data = self.transformer.transform(raw_data)
-            self.stats['valid_records_cleaned'] = len(clean_data)
-            print(f"   ✓ Cleaned {len(clean_data)} valid records")
-            
-            if not clean_data:
-                print("\n⚠ No valid data after cleaning. Pipeline stopped.")
-                return self.stats
-            
-            # Step 3: LOAD
-            print("\n💾 Step 3: LOAD - Saving to database...")
-            self.loader.save(clean_data)
-            self.stats['records_saved'] = len(clean_data)
-            
-            # Count unique stations
-            unique_stations = len(set(record.station_id for record in clean_data))
-            self.stats['stations_processed'] = unique_stations
-            
+            # Get available stations
+            all_stations = self.extractor.get_available_stations()
+
+            # Filter by station_ids if provided
+            if station_ids:
+                stations = [s for s in all_stations if s['station_id'] in station_ids]
+            else:
+                stations = all_stations[:10]  # Limit to 10 for demo
+
+            # ✅ QUEUE: Add all stations to processing queue
+            print(f"\n📋 Adding {len(stations)} stations to Queue...")
+            for station in stations:
+                self.processing_queue.enqueue(station['station_id'])
+                print(f"   → Enqueued: {station['station_id']}")
+
+            print(f"\n✓ Queue initialized with {self.processing_queue.size()} stations")
+
+            # ✅ QUEUE: Process stations in FIFO order
+            print("\n🔄 Processing stations from Queue (FIFO)...\n")
+
+            all_clean_data = []
+
+            while not self.processing_queue.is_empty():
+                # ✅ FIX 1: Handle Optional[str] from dequeue
+                station_id = self.processing_queue.dequeue()
+
+                # Type guard: skip if None
+                if station_id is None:
+                    continue
+
+                remaining = self.processing_queue.size()
+
+                print(f"📍 Processing station: {station_id} (Queue remaining: {remaining})")
+
+                # Find station info
+                station_info = next((s for s in stations if s['station_id'] == station_id), None)
+
+                if not station_info:
+                    print(f"   ⚠ Station {station_id} not found, skipping...")
+
+                    # ✅ LINKED LIST: Record skip event
+                    self.processing_history.append(ProcessingRecord(
+                        station_id=station_id,
+                        record_count=0,
+                        timestamp=datetime.now(),
+                        status="skipped"
+                    ))
+                    continue
+
+                try:
+                    # ✅ FIX 2: Use public extract() method instead of private _extract_station_data
+                    # Extract data for this single station
+                    raw_data = self.extractor.extract(
+                        station_ids=[station_id],
+                        limit=limit_per_station
+                    )
+
+                    if not raw_data:
+                        print("   ⚠ No data extracted")
+
+                        # ✅ LINKED LIST: Record no-data event
+                        self.processing_history.append(ProcessingRecord(
+                            station_id=station_id,
+                            record_count=0,
+                            timestamp=datetime.now(),
+                            status="no_data"
+                        ))
+                        continue
+
+                    # Transform
+                    clean_data = self.transformer.transform(raw_data)
+
+                    if clean_data:
+                        # Load
+                        self.loader.save(clean_data)
+                        all_clean_data.extend(clean_data)
+
+                        print(f"   ✓ Saved {len(clean_data)} records")
+
+                        # ✅ LINKED LIST: Record success event
+                        self.processing_history.append(ProcessingRecord(
+                            station_id=station_id,
+                            record_count=len(clean_data),
+                            timestamp=datetime.now(),
+                            status="success"
+                        ))
+
+                        self.stats['stations_processed'] += 1
+                        self.stats['records_saved'] += len(clean_data)
+
+                except (ValueError, KeyError, RuntimeError) as e:
+                    print(f"   ✗ Error: {e}")
+
+                    # ✅ LINKED LIST: Record failure event
+                    self.processing_history.append(ProcessingRecord(
+                        station_id=station_id,
+                        record_count=0,
+                        timestamp=datetime.now(),
+                        status="failed"
+                    ))
+
+                    self.stats['stations_failed'] += 1
+
             # Calculate duration
             self.stats['end_time'] = datetime.now()
             self.stats['duration_seconds'] = round(time.time() - start_time, 2)
-            
+
             # Print summary
             self._print_summary()
-            
+
             return self.stats
-            
+
         except Exception as e:
-            print(f"\n❌ Pipeline failed with error: {e}")
+            print(f"\n❌ Pipeline failed: {e}")
             self.stats['end_time'] = datetime.now()
             self.stats['duration_seconds'] = round(time.time() - start_time, 2)
             raise
-    
+
     def _print_summary(self):
         """Print pipeline execution summary."""
         print("\n" + "="*70)
-        print("✅ ETL Pipeline Completed Successfully")
+        print("✅ ETL Pipeline Completed")
         print("="*70)
         print(f"⏱  Duration: {self.stats['duration_seconds']} seconds")
-        print(f"📊 Records extracted: {self.stats['raw_records_extracted']}")
-        print(f"✨ Records cleaned: {self.stats['valid_records_cleaned']}")
         print(f"💾 Records saved: {self.stats['records_saved']}")
         print(f"🏢 Stations processed: {self.stats['stations_processed']}")
-        
-        # Calculate success rate
-        if self.stats['raw_records_extracted'] > 0:
-            success_rate = (
-                self.stats['valid_records_cleaned'] / 
-                self.stats['raw_records_extracted'] * 100
-            )
-            print(f"📈 Data quality: {success_rate:.1f}% valid records")
-        
+        print(f"❌ Stations failed: {self.stats['stations_failed']}")
+
+        # ✅ Show LinkedList history
+        self._print_processing_history()
+
         print("="*70 + "\n")
-    
+
+    def _print_processing_history(self):
+        """Display processing history from LinkedList."""
+        print("\n🔗 Processing History (LinkedList):")
+        print("-" * 70)
+
+        history = self.processing_history.to_list()
+
+        if not history:
+            print("   (No history recorded)")
+            return
+
+        for i, record in enumerate(history, 1):
+            time_str = record.timestamp.strftime('%H:%M:%S')
+            status_emoji = {
+                'success': '✓',
+                'failed': '✗',
+                'skipped': '⊘',
+                'no_data': '⚠'
+            }.get(record.status, '?')
+
+            print(f"   {i}. [{time_str}] {status_emoji} "
+                  f"Station {record.station_id}: "
+                  f"{record.status} ({record.record_count} records)")
+
+        print("-" * 70)
+        print(f"Total events tracked: {len(history)}")
+
+    # ✅ PUBLIC METHODS: Access data structures
+
+    def get_processing_history(self) -> List[ProcessingRecord]:
+        """
+        Get complete processing history from LinkedList.
+        Maintains chronological order of events.
+        """
+        return self.processing_history.to_list()
+
+    def get_queue_status(self) -> dict:
+        """
+        Get current queue status.
+        Useful for monitoring during long-running pipelines.
+        """
+        return {
+            'remaining_stations': self.processing_queue.size(),
+            'is_empty': self.processing_queue.is_empty(),
+            'next_station': self.processing_queue.peek()
+        }
+
     def get_stats(self) -> dict:
-        """
-        Get pipeline statistics.
-        
-        Returns:
-            dict: Pipeline execution statistics
-        """
+        """Get pipeline statistics."""
         return self.stats.copy()
-    
+
     def reset_stats(self):
-        """Reset pipeline statistics."""
+        """Reset pipeline statistics and clear history."""
         self.stats = {
             'start_time': None,
             'end_time': None,
@@ -162,5 +278,9 @@ class ETLPipeline:
             'raw_records_extracted': 0,
             'valid_records_cleaned': 0,
             'records_saved': 0,
-            'stations_processed': 0
+            'stations_processed': 0,
+            'stations_failed': 0
         }
+
+        # Clear history but keep structure
+        self.processing_history = LinkedList[ProcessingRecord]()

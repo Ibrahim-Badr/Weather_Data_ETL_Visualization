@@ -1,22 +1,13 @@
 """
-Test script for WeatherDataModel.
+Tests for WeatherDataModel.
 """
-import sys
-import os
+import pytest
 from datetime import datetime
-
-# Add src to path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from src.models.weather_model import WeatherDataModel
 
 
-def test_valid_model():
+def test_create_valid_model():
     """Test creating a valid weather model."""
-    print("="*70)
-    print("Test 1: Creating a valid WeatherDataModel")
-    print("="*70)
-    
     model = WeatherDataModel(
         location="Toulouse",
         station_id="24",
@@ -29,67 +20,40 @@ def test_valid_model():
         timestamp=datetime.now()
     )
     
-    print(f"\n✓ Model created: {model}")
-    print(f"\n✓ Validation result: {model.validate()}")
-    
-    # Test to_dict
-    print(f"\n✓ Dictionary representation:")
-    print(model.to_dict())
+    assert model is not None
+    assert model.location == "Toulouse"
+    assert model.station_id == "24"
+    assert model.temperature == 20.6
+    assert model.validate() is True
 
 
-def test_invalid_models():
-    """Test validation with invalid data."""
-    print("\n" + "="*70)
-    print("Test 2: Testing validation with invalid data")
-    print("="*70)
-    
-    # Invalid temperature
-    invalid_temp = WeatherDataModel(
-        location="Toulouse",
-        station_id="24",
-        station_name="Test Station",
-        temperature=150.0,  # Too high!
-        humidity=74.0,
-        rainfall=0.0,
-        timestamp=datetime.now()
-    )
-    print(f"\n✗ Invalid temperature (150°C): {invalid_temp.validate()}")
-    
-    # Invalid humidity
-    invalid_humidity = WeatherDataModel(
-        location="Toulouse",
-        station_id="24",
-        station_name="Test Station",
-        temperature=20.0,
-        humidity=150.0,  # Over 100%!
-        rainfall=0.0,
-        timestamp=datetime.now()
-    )
-    print(f"✗ Invalid humidity (150%): {invalid_humidity.validate()}")
-    
-    # Negative rainfall
-    invalid_rainfall = WeatherDataModel(
+def test_model_to_dict():
+    """Test converting model to dictionary."""
+    model = WeatherDataModel(
         location="Toulouse",
         station_id="24",
         station_name="Test Station",
         temperature=20.0,
         humidity=74.0,
-        rainfall=-5.0,  # Negative!
+        rainfall=0.0,
         timestamp=datetime.now()
     )
-    print(f"✗ Negative rainfall (-5mm): {invalid_rainfall.validate()}")
+    
+    model_dict = model.to_dict()
+    
+    assert isinstance(model_dict, dict)
+    assert 'location' in model_dict
+    assert 'station_id' in model_dict
+    assert 'temperature' in model_dict
+    assert model_dict['location'] == "Toulouse"
 
 
-def test_from_dict():
+def test_model_from_dict():
     """Test creating model from dictionary."""
-    print("\n" + "="*70)
-    print("Test 3: Creating model from dictionary")
-    print("="*70)
-    
     data = {
         'location': 'Toulouse',
         'station_id': '24',
-        'station_name': '24-station-meteo-colomiers-zi-enjacca',
+        'station_name': '24-station-meteo-colomiers',
         'temperature': 20.6,
         'humidity': 74,
         'rainfall': 0,
@@ -99,15 +63,87 @@ def test_from_dict():
     }
     
     model = WeatherDataModel.from_dict(data)
-    print(f"\n✓ Model from dict: {model}")
-    print(f"✓ Is valid: {model.validate()}")
-
-
-if __name__ == "__main__":
-    test_valid_model()
-    test_invalid_models()
-    test_from_dict()
     
-    print("\n" + "="*70)
-    print("All model tests completed!")
-    print("="*70)
+    assert model is not None
+    assert model.location == 'Toulouse'
+    assert model.station_id == '24'
+    assert model.temperature == 20.6
+    assert model.validate() is True
+
+
+def test_invalid_temperature():
+    """Test validation fails for invalid temperature."""
+    model = WeatherDataModel(
+        location="Toulouse",
+        station_id="24",
+        station_name="Test Station",
+        temperature=150.0,  # Too high!
+        humidity=74.0,
+        rainfall=0.0,
+        timestamp=datetime.now()
+    )
+    
+    assert model.validate() is False
+
+
+def test_invalid_humidity():
+    """Test validation fails for invalid humidity."""
+    model = WeatherDataModel(
+        location="Toulouse",
+        station_id="24",
+        station_name="Test Station",
+        temperature=20.0,
+        humidity=150.0,  # Over 100%!
+        rainfall=0.0,
+        timestamp=datetime.now()
+    )
+    
+    assert model.validate() is False
+
+
+def test_negative_rainfall():
+    """Test validation fails for negative rainfall."""
+    model = WeatherDataModel(
+        location="Toulouse",
+        station_id="24",
+        station_name="Test Station",
+        temperature=20.0,
+        humidity=74.0,
+        rainfall=-5.0,  # Negative!
+        timestamp=datetime.now()
+    )
+    
+    assert model.validate() is False
+
+
+def test_valid_edge_case_values():
+    """Test model with edge case but valid values."""
+    model = WeatherDataModel(
+        location="Toulouse",
+        station_id="24",
+        station_name="Test Station",
+        temperature=-50.0,  # Cold but valid
+        humidity=0.0,       # Dry but valid
+        rainfall=0.0,       # No rain, valid
+        wind_speed=0.0,     # No wind, valid
+        timestamp=datetime.now()
+    )
+    
+    assert model.validate() is True
+
+
+def test_model_string_representation():
+    """Test that model has a string representation."""
+    model = WeatherDataModel(
+        location="Toulouse",
+        station_id="24",
+        station_name="Test Station",
+        temperature=20.0,
+        humidity=74.0,
+        rainfall=0.0,
+        timestamp=datetime.now()
+    )
+    
+    str_repr = str(model)
+    assert isinstance(str_repr, str)
+    assert len(str_repr) > 0

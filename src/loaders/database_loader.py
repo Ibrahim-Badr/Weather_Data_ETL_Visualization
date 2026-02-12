@@ -34,6 +34,9 @@ class DatabaseLoader(IDataLoader):
         # Make sure parent folder exists
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
+        # ✅ Track connections for cleanup
+        self._connections = []
+
     def _get_connection(self) -> sqlite3.Connection:
         """
         Create and return a new SQLite connection.
@@ -41,7 +44,33 @@ class DatabaseLoader(IDataLoader):
         Returns:
             sqlite3.Connection object.
         """
-        return sqlite3.connect(self.db_path)
+        conn = sqlite3.connect(self.db_path)
+        self._connections.append(conn)
+        return conn
+
+    # ✅ Cleanup method
+    def close(self) -> None:
+        """Close all open database connections."""
+        for conn in self._connections:
+            try:
+                conn.close()
+            except sqlite3.Error:
+                pass
+        self._connections.clear()
+
+    # ✅ Context manager support
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - close connections."""
+        self.close()
+
+    # ✅ Destructor
+    def __del__(self):
+        """Cleanup when object is destroyed."""
+        self.close()
 
     def initialize(self) -> None:
         """
